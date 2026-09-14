@@ -1,0 +1,4 @@
+{"type": "touch", "timestamp": "2026-09-13T00:00:00Z", "source": "sensor-01", "gesture": "tap", "intensity": 0.72, "duration_ms": 120, "location": {"x": 0.42, "y": 0.63}, "confidence": 0.98}
+{"type": "touch", "timestamp": "2026-09-13T00:00:01Z", "source": "sensor-01", "gesture": "tap", "intensity": 0.55, "duration_ms": 100, "location": {"x": 0.5, "y": 0.5}, "confidence": 0.99}
+{"type": "touch", "timestamp": "2026-09-14T00:00:00Z", "source": "test", "gesture": "tap", "intensity": null, "duration_ms": null, "location": {"x": 0.5, "y": 0.5}, "confidence": 1.0}
+{"type": "touch", "timestamp": "2026-09-14T00:27:08Z", "source": "iphone", "gesture": "began", "intensity": null, "duration_ms": null, "location": {"y": 314.66666666666663, "x": 243.66666666666666}, "confidence": null}

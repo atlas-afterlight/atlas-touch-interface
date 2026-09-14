@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AtlasTouch</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f7f4ed;
+      color: #171717;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .eye {
+      font-size: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    #touchSurface {
+      position: relative;
+      flex: 1;
+      margin: 0 12px;
+      border: 1px solid #cfcac0;
+      border-radius: 18px;
+      background: #ffffff;
+      touch-action: none;
+      overflow: hidden;
+    }
+
+    #hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa49a;
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    .touch-marker {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #171717;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    #controls {
+      padding: 12px 20px 18px;
+      flex-shrink: 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #171717;
+      border-radius: 10px;
+      background: #171717;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 8px;
+      text-align: center;
+      color: #8b867d;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="identity">
+      <span class="eye">◉</span>
+      <h1>AtlasTouch</h1>
+    </div>
+  </header>
+
+  <main id="touchSurface">
+    <div id="hint">touch anywhere</div>
+  </main>
+
+  <section id="controls">
+    <button id="copyButton">Copy Log</button>
+    <div id="status">0 touches</div>
+  </section>
+
+  <script>
+    const surface = document.getElementById("touchSurface");
+    const hint = document.getElementById("hint");
+    const copyButton = document.getElementById("copyButton");
+    const status = document.getElementById("status");
+
+    const activeTouches = new Map();
+    const completedTouches = [];
+
+    function nowISO() {
+      return new Date().toISOString();
+    }
+
+    function normalizedLocation(event) {
+      const rect = surface.getBoundingClientRect();
+
+      return {
+        x: Number(((event.clientX - rect.left) / rect.width).toFixed(4)),
+        y: Number(((event.clientY - rect.top) / rect.height).toFixed(4))
+      };
+    }
+
+    function updateStatus() {
+      const count = completedTouches.length;
+
+      status.textContent =
+        `${count} touch${count === 1 ? "" : "es"}`;
+    }
+
+    function addMarker(event) {
+      const rect = surface.getBoundingClientRect();
+
+      const marker = document.createElement("div");
+      marker.className = "touch-marker";
+      marker.style.left = `${event.clientX - rect.left}px`;
+      marker.style.top = `${event.clientY - rect.top}px`;
+
+      surface.appendChild(marker);
+
+      setTimeout(() => marker.remove(), 700);
+    }
+
+    surface.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+
+      hint.style.display = "none";
+
+      const id = event.pointerId;
+
+      activeTouches.set(id, {
+        type: "touch",
+        touch_id: `touch-${Date.now()}-${id}`,
+        timestamp: nowISO(),
+        source: "iphone-web",
+        gesture: "tap",
+        duration_ms: null,
+        location: normalizedLocation(event),
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      });
+
+      surface.setPointerCapture(id);
+      addMarker(event);
+    });
+
+    surface.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+
+      const touch = activeTouches.get(event.pointerId);
+
+      if (!touch) {
+        return;
+      }
+
+      const start = new Date(touch.timestamp).getTime();
+      touch.duration_ms = Date.now() - start;
+
+      activeTouches.delete(event.pointerId);
+      completedTouches.push(touch);
+
+      updateStatus();
+
+      console.log(JSON.stringify(touch));
+    });
+
+    surface.addEventListener("pointercancel", (event) => {
+      activeTouches.delete(event.pointerId);
+    });
+
+    copyButton.addEventListener("click", async () => {
+      if (completedTouches.length === 0) {
+        status.textContent = "Nothing to copy yet";
+        setTimeout(updateStatus, 1200);
+        return;
+      }
+
+      const log = completedTouches
+        .map(event => JSON.stringify(event))
+        .join("\n");
+
+      try {
+        await navigator.clipboard.writeText(log);
+
+        status.textContent = "Copied";
+        setTimeout(updateStatus, 1200);
+      } catch (error) {
+        status.textContent = "Copy failed";
+        console.error(error);
+        setTimeout(updateStatus, 1200);
+      }
+    });
+  </script>
+
+</body>
+</html>
